@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/* Import assoluti come richiesto dal modus operandi */
+import 'package:dashboard_fabersoft_new/providers/auth_provider.dart';
+import 'package:dashboard_fabersoft_new/screens/login_screen.dart';
+
 void main() {
-  runApp(const FaberSoftApp());
+  /* Inizializzazione dell'app con il provider di autenticazione */
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthProvider()..tryAutoLogin(),
+      child: const FaberSoftApp(),
+    ),
+  );
 }
 
 class FaberSoftApp extends StatelessWidget {
@@ -12,59 +23,27 @@ class FaberSoftApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'FaberSoft Dashboard',
-      debugShowCheckedModeBanner: false, // Rimuove il banner "Debug"
-
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        // Generiamo tutti i colori partendo dal Blu FaberSoft
+        /* Impostazione del colore Blu FaberSoft ufficiale */
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF007BFF),
+          seedColor: const Color(0xFF005CAA),
           brightness: Brightness.light,
         ),
-        // Applichiamo Roboto (standard Material) tramite Google Fonts
         textTheme: GoogleFonts.robotoTextTheme(),
-
-        // Configurazione AppBar per evitare "linee" o ombre indesiderate
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-          scrolledUnderElevation: 0, // Evita che cambi colore scrollando
-        ),
       ),
-
-      home: const TestPage(),
-    );
-  }
-}
-
-class TestPage extends StatelessWidget {
-  const TestPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FaberSoft Dashboard'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lock_person_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Ambiente Configurato',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            const Text('Pronti per il collegamento API'),
-          ],
-        ),
+      /* Visualizzazione dinamica della home in base allo stato di login */
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          if (auth.isAuthenticated) {
+            return const Scaffold(
+              body: Center(child: Text('Dashboard Account')),
+            );
+          } else {
+            return const LoginScreen();
+          }
+        },
       ),
     );
   }
