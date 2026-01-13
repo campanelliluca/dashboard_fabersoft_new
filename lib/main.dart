@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 /* Import assoluti come richiesto dal modus operandi */
 import 'package:dashboard_fabersoft_new/providers/auth_provider.dart';
 import 'package:dashboard_fabersoft_new/screens/login_screen.dart';
+import 'package:dashboard_fabersoft_new/screens/dashboard_screen.dart';
 
 void main() {
   /* Inizializzazione dell'app con il provider di autenticazione */
@@ -37,9 +38,8 @@ class FaberSoftApp extends StatelessWidget {
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           if (auth.isAuthenticated) {
-            return const Scaffold(
-              body: Center(child: Text('Dashboard Account')),
-            );
+            /* Se loggato, mostriamo la vera Dashboard */
+            return const DashboardScreen();
           } else {
             return const LoginScreen();
           }
