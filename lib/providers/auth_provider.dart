@@ -1,62 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-/* Usiamo gli import assoluti per garantire la manutenibilità del progetto */
-import 'package:dashboard_fabersoft_new/services/api_service.dart';
+/* Import assoluti come richiesto dal modus operandi */
+import 'package:dashboard_fabersoft_new/core/api_constants.dart';
 
-/*
- * AuthProvider: Gestisce lo stato globale di autenticazione dell'utente.
- * Questa classe funge da "motore di sicurezza" dell'app, notificando i cambiamenti
- * di stato (Login/Logout) a tutti i widget della UI in tempo reale.
+/* * Provider per la gestione dell'autenticazione.
+ * Si interfaccia con api_v1.php per validare le credenziali tramite htpasswd.db.
  */
 class AuthProvider with ChangeNotifier {
   String? _token;
   bool _isAuthenticated = false;
 
-  /* Getter pubblici per accedere allo stato di sicurezza dall'esterno */
-  String? get token => _token;
   bool get isAuthenticated => _isAuthenticated;
+  String? get token => _token;
 
-  /*
-   * Tenta il login reale contattando il backend FaberSoft.
-   * Utilizza il sistema htpasswd.db e la firma JWT ufficiale.
+  /* * Metodo per effettuare il login.
+   * Invia 'user' e 'pass' all'endpoint api_v1.php.
+   * Gestisce la risposta JSON verificando lo stato di successo e il token JWT.
    */
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String username, String password) async {
     try {
-      /* Istanza del servizio API per la comunicazione di rete */
-      final api = ApiService();
+      /* Chiamata POST verso l'API Gateway FaberSoft */
+      final response = await http.post(
+        Uri.parse(ApiConstants.loginEndpoint),
+        body: {
+          'user': username, // Parametro user richiesto da api_v1.php
+          'pass': password, // Parametro pass richiesto da api_v1.php
+        },
+      );
 
-      /* Esecuzione della richiesta di autenticazione sul server */
-      final responseToken = await api.performLogin(email, password);
+      /* * Analisi della risposta del server:
+       * api_v1.php restituisce 200 OK anche in caso di errore, 
+       * quindi controlliamo il contenuto del JSON.
+       */
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
 
-      if (responseToken != null) {
-        _token = responseToken;
-        _isAuthenticated = true;
+        /* Verifica dello stato 'success' e presenza del token JWT */
+        if (responseData['status'] == 'success' &&
+            responseData['token'] != null) {
+          _token = responseData['token'];
+          _isAuthenticated = true;
 
-        /* Persistenza del token nel dispositivo tramite SharedPreferences */
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', _token!);
+          /* Salvataggio persistente del token per sessioni future */
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('jwt_token', _token!);
 
-        /* Notifica i widget per il passaggio automatico alla Dashboard */
-        notifyListeners();
-        return true;
+          /* Notifica i widget in ascolto del cambio di stato */
+          notifyListeners();
+          return true;
+        } else {
+          debugPrint(
+            "Login fallito: ${responseData['message'] ?? 'Credenziali non valide'}",
+          );
+        }
       }
-
-      /* Login fallito: impostiamo lo stato a non autenticato */
-      _isAuthenticated = false;
-      notifyListeners();
       return false;
-    } catch (e) {
-      /* Gestione sicura di eventuali crash o errori di connessione */
-      _isAuthenticated = false;
-      notifyListeners();
+    } catch (error) {
+      /* Gestione errori di rete o parsing */
+      debugPrint("Errore critico durante il login: $error");
       return false;
     }
   }
 
-  /*
-   * Tenta di ripristinare una sessione esistente all'avvio dell'app.
-   * Verifica se è presente un token salvato in precedenza.
+  /* * Tenta il login automatico all'avvio.
+   * Recupera il token JWT salvato localmente se presente.
    */
   Future<void> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
@@ -67,18 +77,14 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /*
-   * Esegue la disconnessione sicura dell'utente.
-   * Rimuove il token dalla memoria volatile e dal database locale del dispositivo.
+  /* * Esegue il logout dell'utente.
+   * Pulisce lo stato interno e rimuove il token dalle preferenze.
    */
   Future<void> logout() async {
     _token = null;
     _isAuthenticated = false;
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
-
-    /* Notifica l'app per riportare l'utente alla schermata di Login */
     notifyListeners();
   }
 }

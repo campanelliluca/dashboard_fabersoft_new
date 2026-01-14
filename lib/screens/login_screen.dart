@@ -26,23 +26,40 @@ class _LoginScreenState extends State<LoginScreen> {
    * Funzione attivata dal pulsante "Accedi".
    * Comunica con il Provider per tentare l'autenticazione.
   */
+  /* Gestione della sottomissione del login */
   void _submitLogin() async {
+    // 1. Mostra l'indicatore di caricamento
     setState(() => _isLoading = true);
 
-    // Chiamiamo il metodo login del Provider
+    // 2. Chiama il metodo login dell'AuthProvider
+    // Passiamo i dati dai controller dei TextField
     final success = await Provider.of<AuthProvider>(
       context,
       listen: false,
     ).login(_emailController.text, _passwordController.text);
 
     if (mounted) {
+      // 3. Nascondi il caricamento
       setState(() => _isLoading = false);
 
-      if (!success) {
-        // Se il login fallisce, mostriamo un messaggio di errore (NIS2: feedback generico)
+      if (success) {
+        /* * LOGIN SUCCESS:
+         * Poiché in main.dart abbiamo un Consumer che ascolta isAuthenticated,
+         * l'app cambierà automaticamente schermata appena notifyListeners() viene chiamato.
+         */
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Credenziali non valide. Riprova.'),
+            content: Text('Accesso effettuato con successo!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        /* LOGIN FAIL: Mostra un errore */
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Credenziali non valide. Controlla username e password.',
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
