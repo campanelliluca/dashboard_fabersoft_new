@@ -98,6 +98,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /* Widget dinamico per il corpo della pagina */
+  /* * Punto 2.a: Widget per il corpo della pagina con Griglia Responsive.
+   * LayoutBuilder ci permette di conoscere le dimensioni dello schermo.
+   */
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -116,12 +119,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Center(child: Text('Nessun account trovato.'));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _filteredAccounts.length,
-      itemBuilder: (context, index) {
-        return AccountCard(account: _filteredAccounts[index]);
+    // Usiamo LayoutBuilder per rendere la griglia adattiva
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calcoliamo il numero di colonne in base alla larghezza disponibile
+        int crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          // Definiamo la struttura della griglia
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount, // 6, 4 o 2 colonne
+            crossAxisSpacing: 16, // Spazio orizzontale tra mattonelle
+            mainAxisSpacing: 16, // Spazio verticale tra mattonelle
+            childAspectRatio: 1.0, // Le rende quadrate (mattonelle)
+          ),
+          itemCount: _filteredAccounts.length,
+          itemBuilder: (context, index) {
+            final account = _filteredAccounts[index];
+            // Per ora usiamo ancora la vecchia AccountCard, la cambieremo nel punto 2.b
+            return AccountCard(account: account);
+          },
+        );
       },
     );
+  }
+
+  /* * Helper per decidere il numero di colonne (Breakpoint).
+   * Segue le tue specifiche: Desktop 6, Tablet 4, Smartphone 2.
+   */
+  int _getCrossAxisCount(double width) {
+    if (width > 1200) {
+      return 6; // Desktop
+    } else if (width > 600) {
+      return 4; // Tablet
+    } else {
+      return 2; // Smartphone
+    }
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dashboard_fabersoft_new/models/account_model.dart';
 
-/*
- * AccountCard: Widget per la visualizzazione moderna di un account.
- * Organizza le informazioni (Label, Note, Host) in una scheda con ombreggiatura.
+/* * AccountCard: La "mattonella" quadrata interattiva.
+ * Ridisegnata per il layout responsive 6-4-2.
  */
 class AccountCard extends StatelessWidget {
   final Account account;
@@ -12,86 +11,137 @@ class AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Recuperiamo il colore primario (Blu FaberSoft) dal tema
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Card(
-      elevation: 3, // Profondità della scheda
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15), // Bordi arrotondati
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /* Avatar con l'iniziale del servizio */
-            CircleAvatar(
-              backgroundColor: const Color(0xFF005CAA), // Blu FaberSoft
-              child: Text(
-                account.label.isNotEmpty ? account.label[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            /* Colonna informativa centrale */
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        // InkWell serve per dare l'effetto al clic
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          // Qui andrà la logica del Punto 3.b (Lancio sito)
+          print('Lancio sito: ${account.host}');
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- PARTE SUPERIORE: ICONA E METODO ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 1. Titolo dell'account (Label)
-                  Text(
-                    account.label,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  // 2. Note per l'utente (Richiesta specifica)
-                  if (account.note.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        account.note,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blueGrey[700],
-                          fontStyle: FontStyle.italic,
-                        ),
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: primaryColor.withOpacity(0.1),
+                    child: Text(
+                      account.label[0].toUpperCase(),
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                  const SizedBox(height: 8),
-
-                  // 3. Informazioni tecniche (Host e User)
-                  Row(
-                    children: [
-                      const Icon(Icons.link, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          account.host,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
                   ),
+                  // Icona e dicitura Metodo (Punto 1.a)
+                  _buildMethodBadge(account.method),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
 
-            /* Freccia laterale per indicare interattività */
-            const Center(child: Icon(Icons.chevron_right, color: Colors.grey)),
-          ],
+              // --- CENTRO: TITOLO E USER ---
+              Text(
+                account.label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                account.user.isNotEmpty ? account.user : 'Nessun utente',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const Spacer(), // Spinge il contenuto successivo verso il basso
+              // --- BASSO: DESCR E NOTE (Soluzione Overflow) ---
+              // Descrizione in corsivo
+              if (account.descr.isNotEmpty)
+                Text(
+                  account.descr,
+                  style: const TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+              // Tag Note con evidenza (Punto 1.a)
+              if (account.note.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    "[NOTE] ${account.note}",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  /* * Helper per creare il badge del metodo di autenticazione.
+   */
+  Widget _buildMethodBadge(String method) {
+    IconData icon;
+    String label;
+
+    switch (method.toLowerCase()) {
+      case 'form':
+        icon = Icons.input;
+        label = "Form";
+        break;
+      case 'basic':
+        icon = Icons.lock_person;
+        label = "Basic";
+        break;
+      case 'link':
+        icon = Icons.link;
+        label = "Link";
+        break;
+      default:
+        icon = Icons.text_fields;
+        label = "Plain";
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.grey[400]),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+      ],
     );
   }
 }
