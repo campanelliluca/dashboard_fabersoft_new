@@ -4,6 +4,7 @@ class Account {
   final String host;
   final String user;
   final String descr;
+  final String note;
 
   Account({
     required this.id,
@@ -11,6 +12,7 @@ class Account {
     required this.host,
     required this.user,
     required this.descr,
+    required this.note,
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
@@ -21,6 +23,7 @@ class Account {
       host: (json['host'] ?? '').toString(),
       user: (json['user'] ?? '').toString(),
       descr: (json['descr'] ?? '').toString(),
+      note: (json['note'] ?? '').toString(),
     );
   }
 }

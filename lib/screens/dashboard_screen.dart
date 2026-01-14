@@ -5,6 +5,8 @@ import 'package:dashboard_fabersoft_new/providers/auth_provider.dart';
 import 'package:dashboard_fabersoft_new/services/api_service.dart';
 import 'package:dashboard_fabersoft_new/models/account_model.dart';
 
+import 'package:dashboard_fabersoft_new/widgets/account_card.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -73,24 +75,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: accounts.length,
-            separatorBuilder: (context, index) => const Divider(),
+            /* Rimuoviamo il Divider perché le Card hanno già il loro margine */
+            separatorBuilder: (context, index) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
               final acc = accounts[index];
-              return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFF005CAA),
-                  child: Icon(Icons.vpn_key_outlined, color: Colors.white),
-                ),
-                title: Text(
-                  acc.label,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text('User: ${acc.user}'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  /* Qui in futuro apriremo il dettaglio con la password */
-                },
-              );
+              /* USIAMO IL NOSTRO NUOVO WIDGET */
+              return AccountCard(account: acc);
             },
           );
         },
