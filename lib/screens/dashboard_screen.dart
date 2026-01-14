@@ -72,14 +72,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           /* 4. Visualizzazione della lista reale */
           final accounts = snapshot.data!;
-          return ListView.separated(
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: accounts.length,
-            /* Rimuoviamo il Divider perché le Card hanno già il loro margine */
-            separatorBuilder: (context, index) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
               final acc = accounts[index];
-              /* USIAMO IL NOSTRO NUOVO WIDGET */
+              // Usiamo la nostra nuova card personalizzata
               return AccountCard(account: acc);
             },
           );
