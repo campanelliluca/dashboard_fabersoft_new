@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+/* Import del nuovo pacchetto per il Drag & Drop */
+import 'package:reorderable_grid_view/reorderable_grid_view.dart';
+
+/* Import assoluti come richiesto dal modus operandi */
 import 'package:dashboard_fabersoft_new/providers/auth_provider.dart';
 import 'package:dashboard_fabersoft_new/services/api_service.dart';
 import 'package:dashboard_fabersoft_new/models/account_model.dart';
@@ -13,10 +17,10 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  List<Account> _allAccounts = []; // Tutti i dati dal server
-  List<Account> _filteredAccounts = []; // Dati filtrati per la UI
-  bool _isLoading = true; // Stato del caricamento
-  String _errorMessage = ''; // Gestione errori
+  List<Account> _allAccounts = [];
+  List<Account> _filteredAccounts = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -24,7 +28,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchAccounts();
   }
 
-  /* Caricamento dati iniziale tramite ApiService */
   Future<void> _fetchAccounts() async {
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -43,7 +46,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  /* Logica di filtraggio locale */
   void _onSearchChanged(String query) {
     setState(() {
       _filteredAccounts = _allAccounts
@@ -53,6 +55,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 acc.host.toLowerCase().contains(query.toLowerCase()),
           )
           .toList();
+    });
+  }
+
+  /* * 3.a: Funzione di riordinamento.
+   * Viene chiamata quando l'utente rilascia una mattonella in una nuova posizione.
+   */
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      // Rimuoviamo l'elemento dalla vecchia posizione e lo inseriamo nella nuova
+      final account = _filteredAccounts.removeAt(oldIndex);
+      _filteredAccounts.insert(newIndex, account);
+
+      // NOTA: Qui in futuro aggiungeremo la chiamata API per salvare l'ordine sul DB
+      debugPrint("Nuovo ordine salvato localmente");
     });
   }
 
@@ -71,7 +87,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Provider.of<AuthProvider>(context, listen: false).logout(),
           ),
         ],
-        /* Barra di ricerca integrata nell'AppBar */
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
           child: Padding(
@@ -97,64 +112,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /* Widget dinamico per il corpo della pagina */
-  /* * Punto 2.a: Widget per il corpo della pagina con Griglia Responsive.
-   * LayoutBuilder ci permette di conoscere le dimensioni dello schermo.
-   */
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage.isNotEmpty) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_errorMessage.isNotEmpty)
       return Center(
         child: Text(
           'Errore: $_errorMessage',
           style: const TextStyle(color: Colors.red),
         ),
       );
-    }
-
-    if (_filteredAccounts.isEmpty) {
+    if (_filteredAccounts.isEmpty)
       return const Center(child: Text('Nessun account trovato.'));
-    }
 
-    // Usiamo LayoutBuilder per rendere la griglia adattiva
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calcoliamo il numero di colonne in base alla larghezza disponibile
         int crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
 
-        return GridView.builder(
+        /* * PUNTO 3.a: ReorderableGridView
+         * Sostituisce il GridView standard per permettere il Drag & Drop.
+         */
+        return ReorderableGridView.builder(
           padding: const EdgeInsets.all(16),
-          // Definiamo la struttura della griglia
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount, // 6, 4 o 2 colonne
-            crossAxisSpacing: 16, // Spazio orizzontale tra mattonelle
-            mainAxisSpacing: 16, // Spazio verticale tra mattonelle
-            childAspectRatio: 1.0, // Le rende quadrate (mattonelle)
-          ),
           itemCount: _filteredAccounts.length,
+          /* Callback obbligatorio per gestire lo spostamento */
+          onReorder: _onReorder,
+          /* * Impostiamo il ritardo del Long Press. 
+          * 200 millisecondi rendono l'azione immediata ma evitano attivazioni involontarie.
+          */
+          dragStartDelay: const Duration(milliseconds: 200),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            /* Abbiamo mantenuto 0.65 come concordato per evitare overflow */
+            childAspectRatio: 0.75,
+          ),
           itemBuilder: (context, index) {
             final account = _filteredAccounts[index];
-            // Per ora usiamo ancora la vecchia AccountCard, la cambieremo nel punto 2.b
-            return AccountCard(account: account);
+            return AccountCard(
+              /* Fondamentale: ogni mattonella deve avere una Key univoca per il Drag & Drop */
+              key: ValueKey(account.id),
+              account: account,
+            );
           },
         );
       },
     );
   }
 
-  /* * Helper per decidere il numero di colonne (Breakpoint).
-   * Segue le tue specifiche: Desktop 6, Tablet 4, Smartphone 2.
-   */
   int _getCrossAxisCount(double width) {
-    if (width > 1200) {
-      return 6; // Desktop
-    } else if (width > 600) {
-      return 4; // Tablet
-    } else {
-      return 2; // Smartphone
-    }
+    if (width > 1200) return 6;
+    if (width > 600) return 4;
+    return 2;
   }
 }
